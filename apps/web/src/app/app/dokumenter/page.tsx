@@ -1,12 +1,13 @@
 "use client";
 
 import { DOCUMENT_TYPE_LABELS, DOCUMENT_TYPES, type ProfileDocument } from "@soknadsprofil/shared";
-import { ExternalLink, FileText, Loader2, Star, Trash2, UploadCloud } from "lucide-react";
+import { ExternalLink, FileText, Loader2, Sparkles, Star, Trash2, UploadCloud } from "lucide-react";
+import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { LoadingBlock, PageHeader, SectionTitle } from "@/components/app/page-header";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge, Card } from "@/components/ui/card";
 import { Select } from "@/components/ui/input";
 import { useProfile } from "@/lib/profile-store";
@@ -114,6 +115,11 @@ export default function DokumenterPage() {
                             {doc.created_at && ` · ${new Date(doc.created_at).toLocaleDateString("nb-NO")}`}
                           </div>
                         </div>
+                        {doc.type === "cv" && (
+                          <Link href={`/app/importer-cv?doc=${doc.id}`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+                            <Sparkles /> <span className="hidden sm:inline">Fyll ut profil</span>
+                          </Link>
+                        )}
                         {!doc.is_default && (
                           <Button variant="ghost" size="sm" onClick={() => setDefaultDocument(doc)}>
                             <Star /> <span className="hidden sm:inline">Gjør til standard</span>

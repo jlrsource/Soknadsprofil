@@ -54,11 +54,16 @@ export default function DashboardPage() {
             <div className="relative flex flex-wrap items-center justify-between gap-4">
               <div>
                 <div className="font-display text-xl font-semibold">Kom i gang på to minutter</div>
-                <p className="mt-1 text-sm text-muted-foreground">Tre raske steg: deg selv, siste jobb og CV.</p>
+                <p className="mt-1 text-sm text-muted-foreground">Tre raske steg, eller last opp CV-en og la AI-en fylle ut for deg.</p>
               </div>
-              <Link href="/app/kom-i-gang" className={buttonVariants({ variant: "gradient", size: "lg" })}>
-                Start <ArrowRight />
-              </Link>
+              <div className="flex flex-wrap gap-2">
+                <Link href="/app/importer-cv" className={buttonVariants({ variant: "outline", size: "lg" })}>
+                  <Sparkles /> Fyll ut fra CV
+                </Link>
+                <Link href="/app/kom-i-gang" className={buttonVariants({ variant: "gradient", size: "lg" })}>
+                  Start <ArrowRight />
+                </Link>
+              </div>
             </div>
           </Card>
         </motion.div>

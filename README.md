@@ -49,6 +49,8 @@ Det eneste stedet profilformatet er definert. Begge appene importerer herfra, s�
 | [resolve.ts](packages/shared/src/resolve.ts) | Henter riktig verdi fra profilen for en felttype |
 | [completeness.ts](packages/shared/src/completeness.ts) | Beregner profilstyrken og foreslår neste steg |
 | [bridge.ts](packages/shared/src/bridge.ts) | Meldingsformatet mellom web-appen og extensionen |
+| [cvExtraction.ts](packages/shared/src/cvExtraction.ts) | Skjemaet for det AI-en skal hente ut av en CV |
+| [cvMerge.ts](packages/shared/src/cvMerge.ts) | Sammenligner CV-funnene med profilen og lager forslag |
 
 ### `apps/web`: web-appen
 
@@ -58,6 +60,7 @@ Det eneste stedet profilformatet er definert. Begge appene importerer herfra, s�
 | `/login` | Innlogging med e-postlenke eller Google (Supabase Auth) |
 | `/app` | Oversikt med profilstyrke, sjekkliste og nøkkeltall |
 | `/app/kom-i-gang` | Veiviser i tre steg for nye brukere |
+| `/app/importer-cv` | Fyller ut profilen fra en opplastet CV ved hjelp av AI |
 | `/app/personalia` | Navn, kontaktinfo og lenker (lagres automatisk) |
 | `/app/erfaring` | Arbeidserfaring, verv og frivillig arbeid, utdanning og kurs |
 | `/app/ferdigheter` | Ferdigheter med nivå, språk og referanser |
@@ -105,6 +108,21 @@ Viktige filer:
 
 Skjemaet sendes aldri inn automatisk.
 
+## Utfylling fra CV med AI
+
+Brukeren kan laste opp CV-en og la Claude fylle ut store deler av profilen.
+
+1. Brukeren velger «Fyll ut profil» på en CV under Dokumenter, i veiviseren eller på oversikten.
+2. API-ruten [`/api/cv/parse`](apps/web/src/app/api/cv/parse/route.ts) henter filen fra Supabase. Den sjekker at dokumentet tilhører brukeren.
+3. [extract.ts](apps/web/src/lib/cv-import/extract.ts) sender CV-en til Claude Opus 5.5 sammen med skjemaet i `cvExtraction.ts`. Svaret kommer tilbake som strukturerte data. PDF og bilder leses direkte, og Word-filer (.docx) gjøres om til tekst først.
+4. [cvMerge.ts](packages/shared/src/cvMerge.ts) sammenligner funnene med profilen:
+   - Ugyldige datoer forkastes.
+   - Rader som finnes fra før, merkes og velges ikke automatisk.
+   - Felt som allerede har en verdi, overskrives bare hvis brukeren krysser av for det.
+5. Brukeren ser over forslagene og velger hva som skal lagres. Ingenting lagres uten godkjenning.
+
+Funksjonen krever `ANTHROPIC_API_KEY` i `apps/web/.env.local`.
+
 ## Tilkobling mellom web-appen og extensionen
 
 Extensionen får sin egen Supabase-sesjon i stedet for å dele web-appens. Supabase bytter ut refresh-tokenet hver gang en sesjon fornyes, så to klienter med samme token ville logget hverandre ut.
@@ -148,4 +166,4 @@ Testene for utfyllingsmotoren kjører blant annet mot et ekte React-skjema, for 
 - Extensionen fyller ut én oppføring per seksjon. Den klikker ikke på «Legg til» for flere jobber eller utdanninger.
 - Egendefinerte nedtrekkslister (som ikke er vanlige `<select>`) fylles ikke ut.
 - Skjemaer som ligger innebygd fra et annet domene enn siden du står på, nås ikke, fordi extensionen bare har tilgang til selve fanen.
-- Planlagt: AI-hjelp for usikre felt og fritekstsvar, og import av profil fra CV.
+- Planlagt: AI-hjelp for usikre felt og fritekstsvar i søknadsskjemaer.

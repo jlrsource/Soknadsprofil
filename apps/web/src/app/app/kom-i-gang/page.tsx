@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, ArrowRight, Check, FileText, PartyPopper, UploadCloud } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, FileText, PartyPopper, Sparkles, UploadCloud } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useRef, useState } from "react";
@@ -19,7 +19,7 @@ export default function OnboardingPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const [uploaded, setUploaded] = useState<string | null>(null);
+  const [uploaded, setUploaded] = useState<{ name: string; id?: string } | null>(null);
 
   if (loading) return <LoadingBlock />;
   const p = profile.personal ?? {};
@@ -56,8 +56,8 @@ export default function OnboardingPage() {
   async function onFile(file: File | undefined) {
     if (!file) return;
     setBusy(true);
-    await uploadDocument(file, "cv");
-    setUploaded(file.name);
+    const doc = await uploadDocument(file, "cv");
+    if (doc) setUploaded({ name: file.name, id: doc.id });
     setBusy(false);
   }
 
@@ -154,10 +154,24 @@ export default function OnboardingPage() {
                 className="mt-6 flex w-full flex-col items-center gap-3 rounded-2xl border-2 border-dashed p-8 transition hover:border-primary/60 hover:bg-primary/5"
               >
                 {uploaded ? <FileText className="size-8 text-success" /> : <UploadCloud className="size-8 text-primary" />}
-                <span className="font-medium">{busy ? "Laster opp …" : uploaded ?? "Velg fil"}</span>
-                <span className="text-xs text-muted-foreground">PDF eller Word, maks 10 MB</span>
+                <span className="font-medium">{busy ? "Laster opp …" : uploaded?.name ?? "Velg fil"}</span>
+                <span className="text-xs text-muted-foreground">PDF eller Word (.docx), maks 10 MB</span>
               </button>
-              <input ref={fileRef} type="file" accept=".pdf,.doc,.docx,.odt" hidden onChange={(e) => onFile(e.target.files?.[0])} />
+              <input ref={fileRef} type="file" accept=".pdf,.docx" hidden onChange={(e) => onFile(e.target.files?.[0])} />
+              {uploaded?.id && (
+                <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="mt-4 rounded-2xl bg-primary/8 p-4">
+                  <div className="flex items-start gap-3">
+                    <Sparkles className="mt-0.5 size-5 shrink-0 text-primary" />
+                    <div className="flex-1">
+                      <div className="font-medium">Vil du at AI-en fyller ut resten?</div>
+                      <p className="mt-0.5 text-sm text-muted-foreground">Vi leser CV-en og foreslår erfaring, utdanning, ferdigheter og språk. Du godkjenner alt før det lagres.</p>
+                      <Link href={`/app/importer-cv?doc=${uploaded.id}`} className={buttonVariants({ variant: "gradient", size: "sm", className: "mt-3" })}>
+                        Fyll ut fra CV <ArrowRight />
+                      </Link>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
               <div className="mt-6 flex justify-between">
                 <Button variant="ghost" onClick={() => setStep(1)}>
                   <ArrowLeft /> Tilbake

@@ -5,3 +5,5 @@ export * from "./classify";
 export * from "./resolve";
 export * from "./completeness";
 export * from "./bridge";
+export * from "./cvExtraction";
+export * from "./cvMerge";

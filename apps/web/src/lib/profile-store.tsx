@@ -24,7 +24,7 @@ interface ProfileContextValue {
   saveRow: <T extends ListTable>(table: T, row: Row<T>) => Promise<Row<T> | null>;
   deleteRow: (table: ListTable, id: string) => Promise<void>;
   reorder: (table: ListTable, ids: string[]) => Promise<void>;
-  uploadDocument: (file: File, type: ProfileDocument["type"]) => Promise<void>;
+  uploadDocument: (file: File, type: ProfileDocument["type"]) => Promise<ProfileDocument | null>;
   deleteDocument: (doc: ProfileDocument) => Promise<void>;
   setDefaultDocument: (doc: ProfileDocument) => Promise<void>;
   getDocumentUrl: (doc: ProfileDocument) => Promise<string | null>;
@@ -134,11 +134,11 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
 
   const uploadDocument = useCallback<ProfileContextValue["uploadDocument"]>(
     async (file, type) => {
-      if (!user) return;
+      if (!user) return null;
       const safeName = file.name.replace(/[^\w.\-æøåÆØÅ ]+/g, "_");
       const path = `${user.id}/${crypto.randomUUID()}-${safeName}`;
       const { error: upErr } = await supabase.storage.from("documents").upload(path, file, { contentType: file.type });
-      if (fail("laste opp filen", upErr)) return;
+      if (fail("laste opp filen", upErr)) return null;
       const isFirstOfType = !profileRef.current.documents.some((d) => d.type === type);
       const { data, error } = await supabase
         .from("documents")
@@ -147,10 +147,11 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         .single();
       if (fail("lagre dokumentet", error)) {
         await supabase.storage.from("documents").remove([path]);
-        return;
+        return null;
       }
       setProfile((p) => ({ ...p, documents: [data as ProfileDocument, ...p.documents] }));
       toast.success(`${file.name} er lastet opp`);
+      return data as ProfileDocument;
     },
     [supabase, user],
   );
