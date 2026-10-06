@@ -1,0 +1,69 @@
+import type { FieldKey } from "./fields";
+
+/**
+ * HTML `autocomplete`-verdier gir sikrest treff.
+ * https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#autofill
+ */
+export const AUTOCOMPLETE_MAP: Record<string, FieldKey> = {
+  "given-name": "firstName",
+  "family-name": "lastName",
+  name: "fullName",
+  email: "email",
+  tel: "phone",
+  "tel-national": "phone",
+  "street-address": "address",
+  "address-line1": "address",
+  "postal-code": "postalCode",
+  "address-level2": "city",
+  country: "country",
+  "country-name": "country",
+  bday: "birthDate",
+  url: "website",
+  organization: "currentEmployer",
+  "organization-title": "currentTitle",
+};
+
+/**
+ * Nøkkelord per felttype (norsk og engelsk). Teksten normaliseres før matching
+ * (små bokstaver, camelCase/_/- blir mellomrom). Treff må stå som hele ord,
+ * så «navn» matcher ikke «fornavn».
+ */
+export const KEYWORDS: Record<FieldKey, string[]> = {
+  firstName: ["fornavn", "first name", "firstname", "fname", "given name", "givenname", "forename"],
+  lastName: ["etternavn", "last name", "lastname", "lname", "surname", "family name", "familyname"],
+  fullName: ["fullt navn", "full name", "fullname", "navn", "name", "ditt navn", "your name"],
+  email: ["e post", "epost", "e mail", "email", "mail", "e postadresse", "epostadresse", "email address"],
+  phone: ["telefon", "telefonnummer", "mobil", "mobilnummer", "tlf", "phone", "phone number", "mobile", "cell", "telephone"],
+  address: ["adresse", "gateadresse", "postadresse", "address", "street", "street address", "address line 1", "address1"],
+  postalCode: ["postnummer", "postnr", "post nr", "zip", "zip code", "zipcode", "postal code", "postcode", "postal"],
+  city: ["poststed", "sted", "by", "city", "town", "bosted"],
+  country: ["land", "country", "nasjonalitet"],
+  birthDate: ["fødselsdato", "fodselsdato", "født", "birth date", "date of birth", "birthdate", "dob", "birthday"],
+  linkedin: ["linkedin", "linked in", "linkedin url", "linkedin profil", "linkedin profile"],
+  website: ["nettside", "hjemmeside", "portefølje", "portfolio", "website", "personal website", "web site", "homepage"],
+  github: ["github", "git hub", "github url", "github profile"],
+  headline: ["overskrift", "headline", "profesjonell tittel", "professional title"],
+  summary: ["sammendrag", "om deg", "om meg", "kort om deg", "beskriv deg selv", "summary", "about you", "about me", "profile summary", "bio"],
+  currentEmployer: ["nåværende arbeidsgiver", "arbeidsgiver", "current employer", "current company", "employer", "company"],
+  currentTitle: ["nåværende stilling", "stillingstittel", "stilling", "current title", "job title", "current position", "position", "title"],
+  school: ["skole", "lærested", "utdanningsinstitusjon", "universitet", "school", "university", "institution", "college"],
+  degree: ["grad", "utdanningsnivå", "degree", "qualification"],
+  fieldOfStudy: ["fagfelt", "studieretning", "studium", "field of study", "major", "discipline"],
+  salaryExpectation: ["lønnskrav", "lønnsforventning", "ønsket lønn", "salary", "salary expectation", "expected salary", "desired salary", "compensation"],
+  availability: ["oppstart", "tiltredelse", "oppsigelsestid", "tilgjengelig fra", "start date", "availability", "notice period", "available from", "earliest start"],
+  motivation: ["motivasjon", "hvorfor søker du", "hvorfor vil du", "hvorfor oss", "søknadstekst", "motivation", "why do you want", "why are you interested", "cover letter text", "why us"],
+  cvFile: ["cv", "resume", "résumé", "curriculum vitae", "last opp cv", "upload cv", "upload resume"],
+  coverLetterFile: ["søknadsbrev", "søknad", "cover letter", "coverletter", "motivasjonsbrev", "letter"],
+};
+
+/** Ord som betyr at feltet IKKE er av typen, selv om et nøkkelord matcher. */
+export const NEGATIVE_KEYWORDS: Partial<Record<FieldKey, string[]>> = {
+  fullName: ["fornavn", "etternavn", "first", "last", "company", "firma", "bedrift", "skole", "school", "referanse", "reference", "user name", "username", "brukernavn"],
+  email: ["referanse", "reference"],
+  phone: ["referanse", "reference"],
+  city: ["fødested", "birth", "referred", "henvist", "funnet", "hørte"],
+  country: ["telefon", "phone", "code"],
+  currentEmployer: ["tidligere", "previous", "former"],
+  currentTitle: ["mr", "mrs", "tiltale", "salutation", "søker", "søke", "apply", "applying"],
+  cvFile: ["søknadsbrev", "cover letter"],
+};

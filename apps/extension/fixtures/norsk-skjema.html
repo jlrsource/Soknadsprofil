@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="nb">
+<head>
+  <meta charset="utf-8">
+  <title>Testskjema – norsk søknadsportal</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px; color: #222; }
+    fieldset { border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-bottom: 20px; }
+    .row { display: grid; grid-template-columns: 180px 1fr; gap: 8px; align-items: center; margin: 8px 0; }
+    input, select, textarea { padding: 8px; border: 1px solid #bbb; border-radius: 4px; font: inherit; }
+    .upload { position: relative; border: 2px dashed #bbb; padding: 16px; border-radius: 8px; text-align: center; }
+    .upload input { position: absolute; inset: 0; opacity: 0; }
+  </style>
+</head>
+<body>
+  <h1>Søknad: Prosjektleder</h1>
+  <p>Ligner på et typisk norsk søknadsskjema (Webcruiter/Easycruit-stil). Brukes til manuell testing av extensionen.</p>
+  <form onsubmit="event.preventDefault(); alert('Skjemaet ble IKKE sendt – dette er en test.')">
+    <fieldset>
+      <legend>Personalia</legend>
+      <div class="row"><label for="ctl00_fornavn">Fornavn *</label><input id="ctl00_fornavn" name="ctl00$fornavn"></div>
+      <div class="row"><label for="ctl00_etternavn">Etternavn *</label><input id="ctl00_etternavn" name="ctl00$etternavn"></div>
+      <div class="row"><label for="fdato">Fødselsdato</label><input id="fdato" placeholder="dd.mm.åååå"></div>
+      <div class="row"><label for="adr">Adresse</label><input id="adr"></div>
+      <div class="row"><label for="pnr">Postnr.</label><input id="pnr" maxlength="4"></div>
+      <div class="row"><label for="psted">Poststed</label><input id="psted"></div>
+      <div class="row"><label for="land">Land</label>
+        <select id="land"><option value="">-- Velg --</option><option>Danmark</option><option>Norge</option><option>Sverige</option></select></div>
+    </fieldset>
+    <fieldset>
+      <legend>Kontakt</legend>
+      <div class="row"><label for="mob">Mobil</label><input id="mob" type="tel"></div>
+      <div class="row"><label for="ep">E-post</label><input id="ep" type="email"></div>
+      <div class="row"><label for="ep2">Gjenta e-post</label><input id="ep2" type="email"></div>
+    </fieldset>
+    <fieldset>
+      <legend>Annet</legend>
+      <div class="row"><label for="arb">Nåværende arbeidsgiver</label><input id="arb"></div>
+      <div class="row"><label for="still">Stillingstittel</label><input id="still"></div>
+      <div class="row"><label for="lonn">Lønnskrav</label><input id="lonn"></div>
+      <div class="row"><label for="opp">Oppsigelsestid / oppstart</label><input id="opp"></div>
+      <div class="row"><label for="motiv">Hvorfor søker du på stillingen?</label><textarea id="motiv" rows="5"></textarea></div>
+      <div class="row"><label for="forer">Har du førerkort klasse B?</label><input id="forer"></div>
+    </fieldset>
+    <fieldset>
+      <legend>Vedlegg</legend>
+      <div class="upload">Last opp CV<input type="file" id="cv" aria-label="Last opp CV"></div>
+      <br>
+      <div class="upload">Last opp søknadsbrev<input type="file" id="brev" aria-label="Last opp søknadsbrev"></div>
+    </fieldset>
+    <button type="submit">Send søknad</button>
+  </form>
+</body>
+</html>

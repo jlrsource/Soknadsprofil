@@ -1,0 +1,66 @@
+/** Alle felttyper utfyllingsmotoren kan gjenkjenne. */
+export const FIELD_KEYS = [
+  "firstName",
+  "lastName",
+  "fullName",
+  "email",
+  "phone",
+  "address",
+  "postalCode",
+  "city",
+  "country",
+  "birthDate",
+  "linkedin",
+  "website",
+  "github",
+  "headline",
+  "summary",
+  "currentEmployer",
+  "currentTitle",
+  "school",
+  "degree",
+  "fieldOfStudy",
+  "salaryExpectation",
+  "availability",
+  "motivation",
+  "cvFile",
+  "coverLetterFile",
+] as const;
+export type FieldKey = (typeof FIELD_KEYS)[number];
+
+export const FIELD_LABELS: Record<FieldKey, string> = {
+  firstName: "Fornavn",
+  lastName: "Etternavn",
+  fullName: "Fullt navn",
+  email: "E-post",
+  phone: "Telefon",
+  address: "Adresse",
+  postalCode: "Postnummer",
+  city: "Poststed",
+  country: "Land",
+  birthDate: "Fødselsdato",
+  linkedin: "LinkedIn",
+  website: "Nettside",
+  github: "GitHub",
+  headline: "Tittel",
+  summary: "Sammendrag",
+  currentEmployer: "Nåværende arbeidsgiver",
+  currentTitle: "Nåværende stilling",
+  school: "Skole",
+  degree: "Grad",
+  fieldOfStudy: "Fagfelt",
+  salaryExpectation: "Lønnskrav",
+  availability: "Oppstart",
+  motivation: "Motivasjon",
+  cvFile: "CV (fil)",
+  coverLetterFile: "Søknadsbrev (fil)",
+};
+
+/** Tags på standardsvar som kobles til felttyper. */
+export const ANSWER_TAG_FIELDS: Partial<Record<FieldKey, string>> = {
+  salaryExpectation: "lønnskrav",
+  availability: "oppstart",
+  motivation: "motivasjon",
+};
+
+export const SUGGESTED_ANSWER_TAGS = ["lønnskrav", "oppstart", "motivasjon", "styrker", "svakheter", "førerkort", "annet"];
