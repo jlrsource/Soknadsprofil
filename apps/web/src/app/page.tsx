@@ -47,7 +47,7 @@ export default function Home() {
               Søk overalt.
             </h1>
             <p className="mt-6 max-w-lg text-lg text-muted-foreground">
-              Bygg én skikkelig god profil i SøknadsProfil. Extensionen fyller ut alle de tunge søknadsskjemaene for deg, på alle plattformer.
+              Bygg én skikkelig god profil i Masterkey. Extensionen fyller ut alle de tunge søknadsskjemaene for deg, på alle plattformer.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link href="/login" className={buttonVariants({ variant: "gradient", size: "lg" })}>
@@ -101,7 +101,7 @@ export default function Home() {
         </section>
       </main>
 
-      <footer className="border-t py-8 text-center text-sm text-muted-foreground">© 2026 SøknadsProfil</footer>
+      <footer className="border-t py-8 text-center text-sm text-muted-foreground">© 2026 Masterkey</footer>
     </div>
   );
 }

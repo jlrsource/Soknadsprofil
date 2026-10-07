@@ -7,8 +7,8 @@ export default defineConfig({
   dev: { server: { port: 3100, origin: "http://localhost:3100" } },
   vite: () => ({ plugins: [tailwindcss()] }),
   manifest: {
-    name: "SøknadsProfil",
-    description: "Fyll ut jobbsøknader med ett klikk, med profilen din fra SøknadsProfil.",
+    name: "Masterkey",
+    description: "Fyll ut jobbsøknader med ett klikk, med profilen din fra Masterkey.",
     // activeTab + scripting: vi får bare tilgang til en fane når brukeren selv ber om det.
     permissions: ["storage", "activeTab", "scripting"],
     commands: {
@@ -17,6 +17,6 @@ export default defineConfig({
         description: "Fyll ut søknaden på denne siden",
       },
     },
-    action: { default_title: "SøknadsProfil" },
+    action: { default_title: "Masterkey" },
   },
 });

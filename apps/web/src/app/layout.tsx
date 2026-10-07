@@ -8,7 +8,7 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 const bricolage = Bricolage_Grotesque({ variable: "--font-bricolage", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: { default: "SøknadsProfil", template: "%s · SøknadsProfil" },
+  title: { default: "Masterkey", template: "%s · Masterkey" },
   description: "Bygg profilen din én gang – fyll ut alle jobbsøknader med ett klikk.",
 };
 

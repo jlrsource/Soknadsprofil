@@ -7,3 +7,4 @@ export * from "./completeness";
 export * from "./bridge";
 export * from "./cvExtraction";
 export * from "./cvMerge";
+export * from "./brand";

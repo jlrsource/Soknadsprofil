@@ -1,6 +1,6 @@
-# SøknadsProfil
+# Masterkey
 
-Jobbsøkere må legge inn de samme opplysningene på nytt i hver søknadsportal: navn, kontaktinfo, erfaring, utdanning og CV. SøknadsProfil samler alt dette på ett sted og fyller det ut for deg.
+Jobbsøkere må legge inn de samme opplysningene på nytt i hver søknadsportal: navn, kontaktinfo, erfaring, utdanning og CV. Masterkey samler alt dette på ett sted og fyller det ut for deg.
 
 Løsningen har to deler:
 

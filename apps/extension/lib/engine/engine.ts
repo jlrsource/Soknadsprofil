@@ -119,7 +119,7 @@ export async function fillDocument(payload: FillPayload, doc: Document = documen
         ok = true;
       }
     } catch (e) {
-      console.warn("[SøknadsProfil] kunne ikke fylle felt", key, e);
+      console.warn("[Masterkey] kunne ikke fylle felt", key, e);
     }
 
     if (!ok) {
@@ -129,7 +129,7 @@ export async function fillDocument(payload: FillPayload, doc: Document = documen
     used.add(key);
     const sure = confidence >= HIGH_CONFIDENCE;
     report.status = sure ? "filled" : "uncertain";
-    highlight(el, sure ? "filled" : "uncertain", sure ? `SøknadsProfil: ${FIELD_LABELS[key]}` : `SøknadsProfil: ${FIELD_LABELS[key]}? Sjekk at dette stemmer.`);
+    highlight(el, sure ? "filled" : "uncertain", sure ? `Masterkey: ${FIELD_LABELS[key]}` : `Masterkey: ${FIELD_LABELS[key]}? Sjekk at dette stemmer.`);
   }
 
   const groups = fillChoiceGroups(payload, doc);
@@ -162,7 +162,7 @@ function fillChoiceGroups(payload: FillPayload, doc: Document): { detected: numb
     checkOption(option.el);
     const sure = result.confidence >= HIGH_CONFIDENCE;
     report.status = sure ? "filled" : "uncertain";
-    highlight(option.el.labels?.[0] ?? option.el, sure ? "filled" : "uncertain", `SøknadsProfil: ${FIELD_LABELS[result.key]}`);
+    highlight(option.el.labels?.[0] ?? option.el, sure ? "filled" : "uncertain", `Masterkey: ${FIELD_LABELS[result.key]}`);
   }
   return { detected, fields };
 }

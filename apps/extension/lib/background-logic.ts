@@ -36,7 +36,7 @@ export async function refreshProfile(): Promise<FullProfile | null> {
   if (!s.session) return null;
   const { data, error } = await supabase.rpc("get_full_profile");
   if (error) {
-    console.warn("[SøknadsProfil] kunne ikke hente profil", error);
+    console.warn("[Masterkey] kunne ikke hente profil", error);
     return null;
   }
   const parsed = fullProfileSchema.safeParse(data);
@@ -104,7 +104,7 @@ async function ensureEngine(tabId: number) {
 export async function fillActiveTab(overwrite = false): Promise<{ ok: true; summary: FillSummary } | { ok: false; error: string }> {
   const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
   if (!tab?.id || !tab.url || !/^https?:/.test(tab.url)) return { ok: false, error: "Denne siden kan ikke fylles ut." };
-  if (!(await currentEmail())) return { ok: false, error: "Koble til SøknadsProfil først." };
+  if (!(await currentEmail())) return { ok: false, error: "Koble til Masterkey først." };
 
   const profile = await getProfile();
   if (!profile) return { ok: false, error: "Fant ingen profil. Sjekk internettforbindelsen." };

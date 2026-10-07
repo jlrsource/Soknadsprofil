@@ -1,5 +1,5 @@
 import { browser } from "wxt/browser";
-import { FIELD_LABELS } from "@soknadsprofil/shared";
+import { brandMarkSvg, FIELD_LABELS } from "@soknadsprofil/shared";
 import { CheckCircle2, ExternalLink, Eraser, Loader2, LogOut, RefreshCw, TriangleAlert, Wand2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { sendToBackground, type ExtState } from "@/lib/messages";
@@ -9,11 +9,9 @@ function Logo() {
   return (
     <div className="flex items-center gap-2 font-semibold tracking-tight">
       <span className="grid size-7 place-items-center rounded-lg bg-[linear-gradient(135deg,var(--primary),var(--mint))] text-white">
-        <svg viewBox="0 0 24 24" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-          <path d="M5 12l4 4L19 6" />
-        </svg>
+        <span className="size-4" dangerouslySetInnerHTML={{ __html: brandMarkSvg({ size: 16 }) }} />
       </span>
-      SøknadsProfil
+      Masterkey
     </div>
   );
 }
@@ -67,12 +65,12 @@ export function App() {
         <Logo />
         <div className="mt-5 rounded-xl border bg-card p-4">
           <h1 className="font-semibold">Koble til profilen din</h1>
-          <p className="mt-1 text-[13px] text-muted-foreground">Logg inn i SøknadsProfil og trykk «Koble til» på extension-siden.</p>
+          <p className="mt-1 text-[13px] text-muted-foreground">Logg inn i Masterkey og trykk «Koble til» på extension-siden.</p>
           <button
             onClick={() => openApp("/app/extension")}
             className="mt-4 flex h-9 w-full items-center justify-center gap-2 rounded-lg bg-primary text-sm font-medium text-primary-foreground hover:brightness-110"
           >
-            Åpne SøknadsProfil <ExternalLink className="size-3.5" />
+            Åpne Masterkey <ExternalLink className="size-3.5" />
           </button>
         </div>
       </div>
@@ -167,7 +165,7 @@ export function App() {
               </button>
             </>
           )}
-          <NotFilled title="Mangler i profilen" items={missing} hint="Legg dem inn i SøknadsProfil, så fylles de ut neste gang." />
+          <NotFilled title="Mangler i profilen" items={missing} hint="Legg dem inn i Masterkey, så fylles de ut neste gang." />
           <NotFilled title="Allerede utfylt på siden" items={alreadyFilled} hint="Kryss av for «Overskriv» for å erstatte dem." />
           <NotFilled title="Kunne ikke fylles ut" items={failed} />
           {result.unrecognized?.length > 0 && (

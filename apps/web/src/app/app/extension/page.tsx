@@ -90,7 +90,7 @@ export default function ExtensionPage() {
               {connected && "Koblet til"}
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              {status.state === "missing" && "Installer SøknadsProfil fra Chrome Web Store. Under utvikling kan du laste den inn som upakket extension. Last deretter siden på nytt."}
+              {status.state === "missing" && "Installer Masterkey fra Chrome Web Store. Under utvikling kan du laste den inn som upakket extension. Last deretter siden på nytt."}
               {status.state === "installed" && !connected && "Koble til for å gi extensionen tilgang til profilen din."}
               {connected && !connectedToOther && `Extensionen bruker profilen til ${status.connectedEmail}.`}
               {connectedToOther && `Extensionen er koblet til en annen konto (${status.connectedEmail}). Koble til på nytt for å bytte.`}
