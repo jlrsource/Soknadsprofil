@@ -2,13 +2,18 @@ import { LANGUAGE_LEVELS, SKILL_LEVELS } from "./schema";
 import { z } from "zod";
 
 /**
- * Det Claude skal trekke ut av en CV. Alle felt er nullable: modellen skal
- * returnere null i stedet for å gjette når noe ikke står i CV-en.
- * Feltnavnene følger databasekolonnene, så forslagene kan lagres direkte.
+ * Det Claude skal trekke ut av en CV. Feltnavnene følger databasekolonnene.
+ *
+ * Ukjente verdier er tom streng ("") i stedet for null, og ukjent nivå er "unknown".
+ * Nullable felt blir anyOf i JSON-skjemaet, og med mange av dem blir grammatikken
+ * API-et kompilerer for structured outputs for stor ("compiled grammar is too large").
+ * cvMerge.ts gjør tomme verdier om til null før noe lagres.
  */
-const text = (description: string) => z.string().nullable().describe(description);
+const text = (description: string) => z.string().describe(`${description} Tom streng hvis ukjent.`);
 const date = (description: string) =>
-  z.string().nullable().describe(`${description} Format YYYY-MM-DD. Bruk 01 for ukjent dag og 01-01 for ukjent måned. null hvis ukjent.`);
+  z.string().describe(`${description} Format YYYY-MM-DD. Bruk 01 for ukjent dag og 01-01 for ukjent måned. Tom streng hvis ukjent.`);
+const skillLevel = z.enum([...SKILL_LEVELS, "unknown"]);
+const languageLevel = z.enum([...LANGUAGE_LEVELS, "unknown"]);
 
 export const cvExtractionSchema = z.object({
   personal: z.object({
@@ -25,7 +30,7 @@ export const cvExtractionSchema = z.object({
     website_url: text("Personlig nettside eller portefølje."),
     github_url: text("Full GitHub-URL."),
     headline: text("Kort profesjonell tittel, f.eks. «Frontend-utvikler». Bare hvis CV-en angir en tittel eller rolle tydelig."),
-    summary: text("Profil- eller sammendragstekst fra CV-en, ordrett eller lett redigert. null hvis CV-en ikke har en."),
+    summary: text("Profil- eller sammendragstekst fra CV-en, ordrett eller lett redigert."),
   }),
   experiences: z
     .array(
@@ -34,7 +39,7 @@ export const cvExtractionSchema = z.object({
         employer: z.string().describe("Arbeidsgiver."),
         location: text("Sted."),
         start_date: date("Startdato."),
-        end_date: date("Sluttdato. null hvis pågående."),
+        end_date: date("Sluttdato. Tom streng hvis pågående."),
         is_current: z.boolean().describe("true hvis stillingen er pågående (f.eks. «nå», «d.d.», «present»)."),
         description: text("Ansvar og oppgaver, kort og på originalspråket."),
       }),
@@ -47,7 +52,7 @@ export const cvExtractionSchema = z.object({
         organization: z.string().describe("Organisasjon."),
         location: text("Sted."),
         start_date: date("Startdato."),
-        end_date: date("Sluttdato. null hvis pågående."),
+        end_date: date("Sluttdato. Tom streng hvis pågående."),
         is_current: z.boolean(),
         description: text("Kort beskrivelse."),
       }),
@@ -59,6 +64,7 @@ export const cvExtractionSchema = z.object({
         school: z.string().describe("Skole eller lærested."),
         degree: text("Grad eller nivå, f.eks. «Bachelor», «Master», «Vitnemål videregående»."),
         field_of_study: text("Fagfelt eller studieretning."),
+        location: text("By der skolen ligger."),
         start_date: date("Startdato."),
         end_date: date("Sluttdato eller forventet ferdig."),
         grade: text("Karaktersnitt hvis oppgitt."),
@@ -80,7 +86,7 @@ export const cvExtractionSchema = z.object({
     .array(
       z.object({
         name: z.string().describe("Ferdighet, kort (1–3 ord)."),
-        level: z.enum(SKILL_LEVELS).nullable().describe("Nivå bare hvis CV-en sier det."),
+        level: skillLevel.describe("Nivå bare hvis CV-en sier det, ellers unknown."),
       }),
     )
     .describe("Faglige ferdigheter, verktøy og teknologier. Ikke språk."),
@@ -88,8 +94,8 @@ export const cvExtractionSchema = z.object({
     .array(
       z.object({
         language: z.string().describe("Språk, på norsk (f.eks. «Engelsk»)."),
-        spoken_level: z.enum(LANGUAGE_LEVELS).nullable(),
-        written_level: z.enum(LANGUAGE_LEVELS).nullable(),
+        spoken_level: languageLevel,
+        written_level: languageLevel,
       }),
     )
     .describe("Språkferdigheter. native = morsmål, fluent = flytende, conversational = godt, basic = grunnleggende."),

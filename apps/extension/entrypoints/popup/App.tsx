@@ -3,7 +3,7 @@ import { FIELD_LABELS } from "@soknadsprofil/shared";
 import { CheckCircle2, ExternalLink, Eraser, Loader2, LogOut, RefreshCw, TriangleAlert, Wand2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { sendToBackground, type ExtState } from "@/lib/messages";
-import type { FillSummary } from "@/lib/types";
+import type { FieldReport, FillSummary } from "@/lib/types";
 
 function Logo() {
   return (
@@ -80,6 +80,17 @@ export function App() {
   }
 
   const fields = result?.fields.filter((f) => f.status === "filled" || f.status === "uncertain") ?? [];
+  // Felt som ble funnet, men ikke fylt ut, gruppert etter årsak. Én forekomst per felttype.
+  const notFilled = (status: FieldReport["status"]) => [
+    ...new Set(
+      (result?.fields ?? [])
+        .filter((f) => f.status === status && !fields.some((x) => x.key === f.key))
+        .map((f) => FIELD_LABELS[f.key]),
+    ),
+  ];
+  const missing = notFilled("no-value");
+  const alreadyFilled = notFilled("skipped-has-value");
+  const failed = notFilled("failed");
 
   return (
     <div className="p-4">
@@ -156,10 +167,36 @@ export function App() {
               </button>
             </>
           )}
+          <NotFilled title="Mangler i profilen" items={missing} hint="Legg dem inn i SøknadsProfil, så fylles de ut neste gang." />
+          <NotFilled title="Allerede utfylt på siden" items={alreadyFilled} hint="Kryss av for «Overskriv» for å erstatte dem." />
+          <NotFilled title="Kunne ikke fylles ut" items={failed} />
+          {result.unrecognized?.length > 0 && (
+            <details className="mt-3 border-t pt-2">
+              <summary className="cursor-pointer text-xs font-medium">Ikke gjenkjent ({result.unrecognized.length})</summary>
+              <ul className="mt-1 space-y-0.5 text-[11px] text-muted-foreground">
+                {result.unrecognized.map((t) => (
+                  <li key={t} className="truncate" title={t}>
+                    {t}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
         </div>
       )}
 
       <p className="mt-4 text-center text-[11px] text-muted-foreground">Ingenting sendes inn automatisk. Se over før du trykker «Send».</p>
+    </div>
+  );
+}
+
+function NotFilled({ title, items, hint }: { title: string; items: string[]; hint?: string }) {
+  if (items.length === 0) return null;
+  return (
+    <div className="mt-3 border-t pt-2">
+      <div className="text-xs font-medium">{title}</div>
+      <div className="mt-1 text-xs text-muted-foreground">{items.join(", ")}</div>
+      {hint && <div className="mt-0.5 text-[11px] text-muted-foreground/80">{hint}</div>}
     </div>
   );
 }

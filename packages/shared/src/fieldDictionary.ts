@@ -46,24 +46,42 @@ export const KEYWORDS: Record<FieldKey, string[]> = {
   summary: ["sammendrag", "om deg", "om meg", "kort om deg", "beskriv deg selv", "summary", "about you", "about me", "profile summary", "bio"],
   currentEmployer: ["nåværende arbeidsgiver", "arbeidsgiver", "current employer", "current company", "employer", "company"],
   currentTitle: ["nåværende stilling", "stillingstittel", "stilling", "current title", "job title", "current position", "position", "title"],
-  school: ["skole", "lærested", "utdanningsinstitusjon", "universitet", "school", "university", "institution", "college"],
-  degree: ["grad", "utdanningsnivå", "degree", "qualification"],
-  fieldOfStudy: ["fagfelt", "studieretning", "studium", "field of study", "major", "discipline"],
+  school: [
+    "skole", "lærested", "lærestad", "lærestaden", "studiested", "studiestedet", "studiestad", "studiestaden",
+    "utdanningsinstitusjon", "utdanningsstad", "universitet", "høgskole", "høgskule", "hvor studerer du", "kvar studerer du",
+    "school", "university", "institution", "college", "where do you study",
+  ],
+  degree: ["grad", "gradsnivå", "utdanningsnivå", "studienivå", "type grad", "bachelor eller master", "degree", "degree level", "qualification"],
+  fieldOfStudy: ["fagfelt", "studieretning", "studium", "studiet", "studiet ditt", "studieprogram", "studieprogrammet", "hva studerer du", "kva studerer du", "field of study", "major", "discipline", "programme", "program of study"],
+  grade: ["snittkarakter", "karaktersnitt", "gjennomsnittskarakter", "gjennomsnittlig karakter", "snitt", "gpa", "grade point average", "average grade"],
+  studyCity: [
+    "studieby", "studiebyen", "by er du student", "stad by er du student", "sted by er du student", "by studerer du",
+    "hvilken by studerer du", "kva by studerer du", "study city", "city of study", "city where you study",
+  ],
   salaryExpectation: ["lønnskrav", "lønnsforventning", "ønsket lønn", "salary", "salary expectation", "expected salary", "desired salary", "compensation"],
   availability: ["oppstart", "tiltredelse", "oppsigelsestid", "tilgjengelig fra", "start date", "availability", "notice period", "available from", "earliest start"],
   motivation: ["motivasjon", "hvorfor søker du", "hvorfor vil du", "hvorfor oss", "søknadstekst", "motivation", "why do you want", "why are you interested", "cover letter text", "why us"],
   cvFile: ["cv", "resume", "résumé", "curriculum vitae", "last opp cv", "upload cv", "upload resume"],
   coverLetterFile: ["søknadsbrev", "søknad", "cover letter", "coverletter", "motivasjonsbrev", "letter"],
+  diplomaFile: ["vitnemål", "vitnemal", "attest", "attester", "karakterutskrift", "karakterkort", "diploma", "transcript", "transcripts", "grades"],
 };
+
+const NON_CV_DOCUMENTS = [
+  "vitnemål", "vitnemal", "attest", "attester", "karakter", "karakterutskrift", "diploma", "transcript",
+  "bilde", "foto", "photo", "picture", "portrett", "profilbilde", "video", "video cv",
+  "dokumentasjon", "annen dokumentasjon", "andre vedlegg", "other documents", "portefølje", "portfolio",
+];
 
 /** Ord som betyr at feltet IKKE er av typen, selv om et nøkkelord matcher. */
 export const NEGATIVE_KEYWORDS: Partial<Record<FieldKey, string[]>> = {
   fullName: ["fornavn", "etternavn", "first", "last", "company", "firma", "bedrift", "skole", "school", "referanse", "reference", "user name", "username", "brukernavn"],
   email: ["referanse", "reference"],
   phone: ["referanse", "reference"],
-  city: ["fødested", "birth", "referred", "henvist", "funnet", "hørte"],
+  city: ["fødested", "birth", "referred", "henvist", "funnet", "hørte", "student", "studerer", "study"],
   country: ["telefon", "phone", "code"],
   currentEmployer: ["tidligere", "previous", "former"],
   currentTitle: ["mr", "mrs", "tiltale", "salutation", "søker", "søke", "apply", "applying"],
-  cvFile: ["søknadsbrev", "cover letter"],
+  // Filfelt for andre dokumenter skal aldri få CV-en.
+  cvFile: ["søknadsbrev", "cover letter", ...NON_CV_DOCUMENTS],
+  coverLetterFile: NON_CV_DOCUMENTS,
 };

@@ -27,6 +27,7 @@ interface ProfileContextValue {
   uploadDocument: (file: File, type: ProfileDocument["type"]) => Promise<ProfileDocument | null>;
   deleteDocument: (doc: ProfileDocument) => Promise<void>;
   setDefaultDocument: (doc: ProfileDocument) => Promise<void>;
+  changeDocumentType: (doc: ProfileDocument, type: ProfileDocument["type"]) => Promise<void>;
   getDocumentUrl: (doc: ProfileDocument) => Promise<string | null>;
   reload: () => Promise<void>;
 }
@@ -38,13 +39,34 @@ function clean<T extends Record<string, unknown>>(obj: T): T {
   return Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, v === "" ? null : v])) as T;
 }
 
-function fail(action: string, error: { message: string } | null) {
+const TABLE_LABELS: Record<ListTable, string> = {
+  experiences: "arbeidserfaring",
+  volunteering: "verv",
+  educations: "utdanning",
+  certifications: "kurs",
+  skills: "ferdighet",
+  languages: "språk",
+  references: "referanse",
+  saved_answers: "standardsvar",
+};
+
+type DbError = { message: string; code?: string; details?: string | null; hint?: string | null };
+
+/** Tekniske detaljer vises bare under utvikling. Vanlige brukere får en generell melding. */
+function describeError(error: DbError): string {
+  if (process.env.NODE_ENV !== "development") return "Prøv igjen om litt. Hvis det fortsetter, ta kontakt med oss.";
+  const missingTable = error.code === "PGRST205" || error.code === "42P01";
+  return missingTable ? "Tabellen finnes ikke i databasen. Har du kjørt alle migrasjonene i supabase/migrations?" : error.message;
+}
+
+function fail(action: string, error: DbError | null) {
   if (!error) {
     notifyProfileUpdated();
     return false;
   }
-  console.error(action, error);
-  toast.error(`Kunne ikke ${action}`, { description: error.message });
+  // PostgrestError logges som {} i nettleseren, så vi skriver ut feltene eksplisitt.
+  console.warn(`Kunne ikke ${action}: ${error.message}`, { code: error.code, details: error.details, hint: error.hint });
+  toast.error(`Kunne ikke ${action}`, { description: describeError(error) });
   return true;
 }
 
@@ -64,7 +86,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     if (userData.user) setUser({ id: userData.user.id, email: userData.user.email ?? null });
     if (error) {
       console.error(error);
-      toast.error("Kunne ikke laste profilen", { description: error.message });
+      toast.error("Kunne ikke laste profilen", { description: describeError(error) });
     } else {
       const parsed = fullProfileSchema.safeParse(data);
       if (!parsed.success) console.warn("Profilen matchet ikke skjemaet", parsed.error.issues);
@@ -97,7 +119,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         ? supabase.from(table).insert(rest).select().single()
         : supabase.from(table).update(rest).eq("id", id).select().single();
       const { data, error } = await query;
-      if (fail("lagre", error)) return null;
+      if (fail(`lagre ${TABLE_LABELS[table]}`, error)) return null;
       const { user_id: _u, created_at: _c, updated_at: _up, ...saved } = data as Record<string, unknown>;
       setProfile((p) => {
         const list = p[table] as Row<typeof table>[];
@@ -183,6 +205,31 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     [supabase, user],
   );
 
+  const changeDocumentType = useCallback<ProfileContextValue["changeDocumentType"]>(
+    async (doc, type) => {
+      if (!doc.id || doc.type === type) return;
+      const docs = profileRef.current.documents;
+      // Blir det første dokumentet av den nye typen, gjør vi det til standard.
+      const becomesDefault = !docs.some((d) => d.type === type && d.is_default);
+      const { error } = await supabase.from("documents").update({ type, is_default: becomesDefault }).eq("id", doc.id);
+      if (fail("endre dokumenttype", error)) return;
+
+      // Var det standard for den gamle typen, overtar neste dokument av den typen.
+      const successor = doc.is_default ? docs.find((d) => d.type === doc.type && d.id !== doc.id) : undefined;
+      if (successor?.id) {
+        const { error: e2 } = await supabase.from("documents").update({ is_default: true }).eq("id", successor.id);
+        fail("endre standarddokument", e2);
+      }
+      setProfile((p) => ({
+        ...p,
+        documents: p.documents.map((d) =>
+          d.id === doc.id ? { ...d, type, is_default: becomesDefault } : d.id === successor?.id ? { ...d, is_default: true } : d,
+        ),
+      }));
+    },
+    [supabase],
+  );
+
   const getDocumentUrl = useCallback<ProfileContextValue["getDocumentUrl"]>(
     async (doc) => {
       const { data, error } = await supabase.storage.from("documents").createSignedUrl(doc.storage_path, 60);
@@ -204,10 +251,11 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       uploadDocument,
       deleteDocument,
       setDefaultDocument,
+      changeDocumentType,
       getDocumentUrl,
       reload,
     }),
-    [profile, loading, user, updatePersonal, saveRow, deleteRow, reorder, uploadDocument, deleteDocument, setDefaultDocument, getDocumentUrl, reload],
+    [profile, loading, user, updatePersonal, saveRow, deleteRow, reorder, uploadDocument, deleteDocument, setDefaultDocument, changeDocumentType, getDocumentUrl, reload],
   );
 
   return <ProfileContext value={value}>{children}</ProfileContext>;

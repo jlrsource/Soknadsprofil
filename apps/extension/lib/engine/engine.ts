@@ -10,10 +10,13 @@ import {
 import type { EngineApi, FieldReport, FilePayload, FillPayload, FrameReport } from "../types";
 import { findAdapter } from "./adapters";
 import {
+  bestOptionIndex,
+  checkOption,
   clearHighlights,
   describeField,
   hasValue,
   highlight,
+  scanChoiceGroups,
   scanFields,
   setContentEditable,
   setFileValue,
@@ -31,7 +34,7 @@ interface Match {
 export function classifyDocument(
   doc: Document = document,
   hostname = doc.location?.hostname ?? "",
-): { matches: Match[]; adapter: string | null } {
+): { matches: Match[]; adapter: string | null; unrecognized: string[] } {
   const adapter = findAdapter(hostname);
   const overrides = new Map<Element, FieldKey>();
   for (const rule of adapter?.fields ?? []) {
@@ -43,12 +46,27 @@ export function classifyDocument(
   }
 
   const matches: Match[] = [];
+  const unrecognized: string[] = [];
+  const unclassifiedFiles: HTMLInputElement[] = [];
+  let fileInputs = 0;
   for (const el of scanFields(doc)) {
+    const isFile = el instanceof HTMLInputElement && el.type === "file";
+    if (isFile) fileInputs++;
     const override = overrides.get(el);
-    const result = override ? { key: override, confidence: 1 } : classifyField(describeField(el));
+    const descriptor = describeField(el);
+    const result = override ? { key: override, confidence: 1 } : classifyField(descriptor);
     if (result) matches.push({ el, result });
+    else if (isFile) unclassifiedFiles.push(el as HTMLInputElement);
+    else {
+      const text = descriptor.label || descriptor.ariaLabel || descriptor.nearbyText || descriptor.placeholder || descriptor.name;
+      if (text) unrecognized.push(text);
+    }
   }
-  return { matches, adapter: adapter?.name ?? null };
+  // Et filfelt uten gjenkjennelig tekst får CV-en bare hvis det er det eneste på siden.
+  if (fileInputs === 1 && unclassifiedFiles.length === 1) {
+    matches.push({ el: unclassifiedFiles[0]!, result: { key: "cvFile", confidence: 0.5 } });
+  }
+  return { matches, adapter: adapter?.name ?? null, unrecognized };
 }
 
 function base64ToFile(f: FilePayload): File {
@@ -62,7 +80,7 @@ function base64ToFile(f: FilePayload): File {
 const MULTI_ALLOWED: FieldKey[] = ["email"];
 
 export async function fillDocument(payload: FillPayload, doc: Document = document): Promise<FrameReport> {
-  const { matches, adapter } = classifyDocument(doc);
+  const { matches, adapter, unrecognized } = classifyDocument(doc);
   const used = new Set<FieldKey>();
   const fields: FieldReport[] = [];
 
@@ -114,7 +132,39 @@ export async function fillDocument(payload: FillPayload, doc: Document = documen
     highlight(el, sure ? "filled" : "uncertain", sure ? `SøknadsProfil: ${FIELD_LABELS[key]}` : `SøknadsProfil: ${FIELD_LABELS[key]}? Sjekk at dette stemmer.`);
   }
 
-  return { url: doc.location?.href ?? "", adapter, detected: matches.length, fields };
+  const groups = fillChoiceGroups(payload, doc);
+  fields.push(...groups.fields);
+
+  return { url: doc.location?.href ?? "", adapter, detected: matches.length + groups.detected, fields, unrecognized };
+}
+
+/** Avkrysningsbokser og radioknapper: kryss av alternativet som passer med profilen. */
+function fillChoiceGroups(payload: FillPayload, doc: Document): { detected: number; fields: FieldReport[] } {
+  const fields: FieldReport[] = [];
+  let detected = 0;
+  for (const group of scanChoiceGroups(doc)) {
+    const result = group.question ? classifyField({ tag: "input", type: "text", label: group.question }) : null;
+    if (!result) continue;
+    detected++;
+    const report: FieldReport = { key: result.key, label: FIELD_LABELS[result.key], confidence: result.confidence, status: "no-value" };
+    fields.push(report);
+
+    if (!payload.overwrite && group.options.some((o) => o.el.checked)) {
+      report.status = "skipped-has-value";
+      continue;
+    }
+    const value = resolveValue(result.key, payload.profile);
+    if (!value || value.kind !== "text") continue;
+    // Krever minst «starter med»-treff, så vi ikke krysser av noe som bare ligner litt.
+    const option = group.options[bestOptionIndex(group.options, value.value, 2)];
+    if (!option) continue;
+
+    checkOption(option.el);
+    const sure = result.confidence >= HIGH_CONFIDENCE;
+    report.status = sure ? "filled" : "uncertain";
+    highlight(option.el.labels?.[0] ?? option.el, sure ? "filled" : "uncertain", `SøknadsProfil: ${FIELD_LABELS[result.key]}`);
+  }
+  return { detected, fields };
 }
 
 export function createEngine(doc: Document = document): EngineApi {

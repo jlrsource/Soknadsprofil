@@ -1,17 +1,19 @@
 -- Logg over CV-importer med AI, brukt til å begrense hvor mange hver bruker kan kjøre per døgn.
+-- Trygg å kjøre flere ganger.
 
-create table public.cv_import_usage (
+create table if not exists public.cv_import_usage (
   id          uuid primary key default gen_random_uuid(),
   user_id     uuid not null references auth.users on delete cascade,
   document_id uuid references public.documents on delete set null,
   created_at  timestamptz not null default now()
 );
 
-create index cv_import_usage_user_time_idx on public.cv_import_usage (user_id, created_at desc);
+create index if not exists cv_import_usage_user_time_idx on public.cv_import_usage (user_id, created_at desc);
 
 -- Brukere kan se sin egen bruk, men ikke endre eller slette den.
 -- Kun serveren (secret key) skriver hit, via claim_cv_import().
 alter table public.cv_import_usage enable row level security;
+drop policy if exists "eier kan lese" on public.cv_import_usage;
 create policy "eier kan lese" on public.cv_import_usage for select using (user_id = auth.uid());
 
 -- Reserverer én import hvis brukeren er under grensen siste 24 timer.

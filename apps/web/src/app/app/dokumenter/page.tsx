@@ -14,10 +14,19 @@ import { useProfile } from "@/lib/profile-store";
 import { cn, formatBytes } from "@/lib/utils";
 
 const MAX_BYTES = 10 * 1024 * 1024;
+
+/** Gjetter dokumenttypen ut fra filnavnet. Faller tilbake på typen brukeren har valgt. */
+function guessType(fileName: string, fallback: ProfileDocument["type"]): ProfileDocument["type"] {
+  const n = fileName.toLowerCase();
+  if (/vitnem[åa]l|transcript|karakter|attest|diploma|grades/.test(n)) return "diploma";
+  if (/s[øo]knad|cover.?letter|motivasjon/.test(n)) return "cover_letter";
+  if (/\bcv\b|resume|résumé|curriculum/.test(n.replace(/[_\-.]/g, " "))) return "cv";
+  return fallback;
+}
 const ACCEPT = ".pdf,.doc,.docx,.odt,.txt,.png,.jpg,.jpeg";
 
 export default function DokumenterPage() {
-  const { profile, loading, uploadDocument, deleteDocument, setDefaultDocument, getDocumentUrl } = useProfile();
+  const { profile, loading, uploadDocument, deleteDocument, setDefaultDocument, changeDocumentType, getDocumentUrl } = useProfile();
   const [type, setType] = useState<ProfileDocument["type"]>("cv");
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(0);
@@ -33,7 +42,7 @@ export default function DokumenterPage() {
         continue;
       }
       setUploading((n) => n + 1);
-      await uploadDocument(file, type);
+      await uploadDocument(file, guessType(file.name, type));
       setUploading((n) => n - 1);
     }
   }
@@ -64,7 +73,7 @@ export default function DokumenterPage() {
           {uploading > 0 ? <Loader2 className="size-6 animate-spin" /> : <UploadCloud className="size-6" />}
         </motion.div>
         <p className="mt-4 font-medium">{uploading > 0 ? "Laster opp …" : "Slipp filer her"}</p>
-        <p className="mt-1 text-sm text-muted-foreground">PDF, Word eller bilde. Maks 10 MB.</p>
+        <p className="mt-1 text-sm text-muted-foreground">PDF, Word eller bilde. Maks 10 MB. Typen gjettes ut fra filnavnet.</p>
         <div className="mx-auto mt-5 flex max-w-sm flex-col items-center gap-2 sm:flex-row">
           <Select value={type} onChange={(e) => setType(e.target.value as ProfileDocument["type"])} aria-label="Dokumenttype">
             {DOCUMENT_TYPES.map((t) => (
@@ -110,9 +119,23 @@ export default function DokumenterPage() {
                             </button>
                             {doc.is_default && <Badge tone="primary">Standard</Badge>}
                           </div>
-                          <div className="text-xs text-muted-foreground">
-                            {formatBytes(doc.size_bytes)}
-                            {doc.created_at && ` · ${new Date(doc.created_at).toLocaleDateString("nb-NO")}`}
+                          <div className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+                            <select
+                              value={doc.type}
+                              onChange={(e) => changeDocumentType(doc, e.target.value as ProfileDocument["type"])}
+                              aria-label={`Type for ${doc.file_name}`}
+                              className="-ml-1 cursor-pointer rounded-md bg-transparent px-1 py-0.5 font-medium text-foreground hover:bg-muted"
+                            >
+                              {DOCUMENT_TYPES.map((t) => (
+                                <option key={t} value={t}>
+                                  {DOCUMENT_TYPE_LABELS[t]}
+                                </option>
+                              ))}
+                            </select>
+                            <span>
+                              {formatBytes(doc.size_bytes)}
+                              {doc.created_at && ` · ${new Date(doc.created_at).toLocaleDateString("nb-NO")}`}
+                            </span>
                           </div>
                         </div>
                         {doc.type === "cv" && (

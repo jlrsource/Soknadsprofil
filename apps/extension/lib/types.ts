@@ -1,6 +1,6 @@
 import type { FieldKey, FullProfile } from "@soknadsprofil/shared";
 
-export type FileKey = Extract<FieldKey, "cvFile" | "coverLetterFile">;
+export type FileKey = Extract<FieldKey, "cvFile" | "coverLetterFile" | "diplomaFile">;
 
 export interface FilePayload {
   name: string;
@@ -29,6 +29,8 @@ export interface FrameReport {
   adapter: string | null;
   detected: number;
   fields: FieldReport[];
+  /** Tekst fra felt som ikke ble gjenkjent, så brukeren ser hva som ble hoppet over. */
+  unrecognized: string[];
 }
 
 export interface FillSummary {
@@ -38,6 +40,7 @@ export interface FillSummary {
   skipped: number;
   adapter: string | null;
   fields: FieldReport[];
+  unrecognized: string[];
   at: number;
 }
 

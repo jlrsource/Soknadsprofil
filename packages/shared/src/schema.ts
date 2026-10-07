@@ -54,6 +54,7 @@ export const educationSchema = z.object({
   school: z.string().trim().min(1, "Skole må fylles ut"),
   degree: optionalText,
   field_of_study: optionalText,
+  location: optionalText,
   start_date: optionalDate,
   end_date: optionalDate,
   grade: optionalText,

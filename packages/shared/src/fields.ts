@@ -20,11 +20,14 @@ export const FIELD_KEYS = [
   "school",
   "degree",
   "fieldOfStudy",
+  "grade",
+  "studyCity",
   "salaryExpectation",
   "availability",
   "motivation",
   "cvFile",
   "coverLetterFile",
+  "diplomaFile",
 ] as const;
 export type FieldKey = (typeof FIELD_KEYS)[number];
 
@@ -49,11 +52,14 @@ export const FIELD_LABELS: Record<FieldKey, string> = {
   school: "Skole",
   degree: "Grad",
   fieldOfStudy: "Fagfelt",
+  grade: "Karaktersnitt",
+  studyCity: "Studiested (by)",
   salaryExpectation: "Lønnskrav",
   availability: "Oppstart",
   motivation: "Motivasjon",
   cvFile: "CV (fil)",
   coverLetterFile: "Søknadsbrev (fil)",
+  diplomaFile: "Vitnemål (fil)",
 };
 
 /** Tags på standardsvar som kobles til felttyper. */

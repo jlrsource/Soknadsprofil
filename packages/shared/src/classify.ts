@@ -23,7 +23,7 @@ export interface Classification {
 export const MIN_CONFIDENCE = 0.5;
 export const HIGH_CONFIDENCE = 0.75;
 
-const FILE_KEYS: FieldKey[] = ["cvFile", "coverLetterFile"];
+const FILE_KEYS: FieldKey[] = ["cvFile", "coverLetterFile", "diplomaFile"];
 const LONG_TEXT_KEYS: FieldKey[] = ["summary", "motivation"];
 
 export function normalize(text: string | undefined | null): string {
@@ -113,7 +113,8 @@ export function classifyField(d: FieldDescriptor): Classification | null {
   // Typen alene er nok når teksten ikke sier noe.
   if (!best && type === "email") best = { key: "email", confidence: 0.8 };
   if (!best && type === "tel") best = { key: "phone", confidence: 0.8 };
-  if (!best && isFile) best = { key: "cvFile", confidence: 0.5 };
+  // Filfelt uten gjenkjennelig tekst gjetter vi ikke på her. Motoren gir CV-en til
+  // et slikt felt bare hvis det er det eneste filfeltet på siden.
 
   return best && best.confidence >= MIN_CONFIDENCE ? best : null;
 }

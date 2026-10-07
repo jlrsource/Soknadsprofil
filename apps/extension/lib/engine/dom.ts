@@ -2,8 +2,11 @@ import type { FieldDescriptor } from "@soknadsprofil/shared";
 
 export type FillableElement = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | HTMLElement;
 
-const SELECTOR = 'input, textarea, select, [contenteditable="true"], [contenteditable=""]';
+const SELECTOR = 'input:not([type="radio"]):not([type="checkbox"]), textarea, select, [contenteditable="true"], [contenteditable=""]';
+const CHOICE_SELECTOR = 'input[type="radio"], input[type="checkbox"]';
 const MAX_TEXT = 160;
+/** Alle typer skjemafelt, brukt for å avgjøre hvor ett felt sin «boks» slutter. */
+const ALL_CONTROLS = 'input:not([type="hidden"]), textarea, select, [contenteditable="true"], [contenteditable=""]';
 
 /** Finn alle skjemafelt, også inne i åpne shadow roots. */
 export function scanFields(root: Document | ShadowRoot = document): FillableElement[] {
@@ -57,16 +60,33 @@ function labelText(el: FillableElement): string {
 }
 
 /** Labeltekst uten verdier fra kontroller inni (f.eks. <select> inne i <label>). */
-function labelWithoutControls(label: HTMLLabelElement): string {
+function labelWithoutControls(label: Element): string {
   const clone = label.cloneNode(true) as HTMLElement;
   clone.querySelectorAll("input, select, textarea, option").forEach((n) => n.remove());
   return clone.textContent ?? "";
 }
 
+/**
+ * Teksten i «raden» et element står i: den ytterste forelderen som ikke inneholder
+ * andre elementer av samme slag (f.eks. et kort med «Vitnemål *» og en skjult filknapp).
+ */
+function containerText(el: Element, sameKind: string, maxDepth = 8): string {
+  let best = "";
+  let node = el.parentElement;
+  for (let depth = 0; node && depth < maxDepth; depth++) {
+    if (node.querySelectorAll(sameKind).length > 1 || node.tagName === "FORM" || node.tagName === "BODY") break;
+    const t = labelWithoutControls(node).replace(/\s+/g, " ").trim();
+    if (t.length > MAX_TEXT) break;
+    if (t) best = t;
+    node = node.parentElement;
+  }
+  return best;
+}
+
 /** Tekst like i nærheten: forrige søsken, eller forrige søsken til en forelder (maks fire nivåer opp). */
 function nearbyText(el: Element): string {
   let node: Element | null = el;
-  for (let depth = 0; node && depth < 4; depth++) {
+  for (let depth = 0; node && depth < 6; depth++) {
     let sib = node.previousElementSibling;
     for (let i = 0; sib && i < 2; i++) {
       if (!sib.matches(SELECTOR) && !sib.querySelector(SELECTOR)) {
@@ -86,6 +106,8 @@ export function describeField(el: FillableElement): FieldDescriptor {
   const root = el.getRootNode() as Document | ShadowRoot;
   const tag: FieldDescriptor["tag"] =
     el instanceof HTMLInputElement ? "input" : el instanceof HTMLTextAreaElement ? "textarea" : el instanceof HTMLSelectElement ? "select" : "contenteditable";
+  const isFile = el instanceof HTMLInputElement && el.type === "file";
+  const ownLabel = labelText(el);
   return {
     tag,
     type: el instanceof HTMLInputElement ? el.type : undefined,
@@ -93,7 +115,9 @@ export function describeField(el: FillableElement): FieldDescriptor {
     name: el.getAttribute("name") ?? undefined,
     id: el.id || undefined,
     placeholder: el.getAttribute("placeholder") ?? el.getAttribute("data-placeholder") ?? undefined,
-    label: labelText(el) || undefined,
+    // Uten egen label bruker vi teksten i «boksen» feltet står alene i (spørsmål + felt).
+    // Filfelt er ofte skjult bak egne knapper, og da er raden det eneste som sier hva de er.
+    label: ownLabel || containerText(el, isFile ? 'input[type="file"]' : ALL_CONTROLS) || undefined,
     ariaLabel: clip(el.getAttribute("aria-label") || textOfIds(el.getAttribute("aria-labelledby"), root)) || undefined,
     nearbyText: nearbyText(el) || undefined,
   };
@@ -132,34 +156,44 @@ const ALIASES: Record<string, string[]> = {
 
 const norm = (s: string) => s.toLowerCase().normalize("NFKC").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
 
-/** Velg alternativet som passer best med verdien. Returnerer false hvis ingen passer. */
-export function setSelectValue(el: HTMLSelectElement, value: string): boolean {
+/**
+ * Finn alternativet som passer best med verdien (eksakt > starter med > inneholder).
+ * Returnerer -1 hvis ingen når `minScore`.
+ */
+export function bestOptionIndex(options: { text: string; value?: string }[], value: string, minScore = 1): number {
   const target = norm(value);
   const candidates = [target, ...(ALIASES[target] ?? [])];
-  const options = Array.from(el.options).filter((o) => !isPlaceholderOption(o));
-  const score = (o: HTMLOptionElement) => {
+  const score = (o: { text: string; value?: string }) => {
     const t = norm(o.text);
-    const v = norm(o.value);
+    const v = norm(o.value ?? "");
     for (const c of candidates) {
       if (t === c || v === c) return 3;
     }
     for (const c of candidates) {
-      if (c.length >= 3 && (t.startsWith(c) || c.startsWith(t))) return 2;
+      if (c.length >= 3 && t.length >= 3 && (t.startsWith(c) || c.startsWith(t))) return 2;
     }
     for (const c of candidates) {
       if (c.length >= 4 && t.includes(c)) return 1;
     }
     return 0;
   };
-  let best: HTMLOptionElement | null = null;
+  let best = -1;
   let bestScore = 0;
-  for (const o of options) {
-    const s = score(o);
-    if (s > bestScore) {
-      best = o;
-      bestScore = s;
+  options.forEach((o, i) => {
+    const sc = score(o);
+    if (sc > bestScore) {
+      best = i;
+      bestScore = sc;
     }
-  }
+  });
+  return bestScore >= minScore ? best : -1;
+}
+
+/** Velg alternativet som passer best med verdien. Returnerer false hvis ingen passer. */
+export function setSelectValue(el: HTMLSelectElement, value: string): boolean {
+  const options = Array.from(el.options).filter((o) => !isPlaceholderOption(o));
+  const i = bestOptionIndex(options.map((o) => ({ text: o.text, value: o.value })), value);
+  const best = options[i];
   if (!best) return false;
   const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value")?.set;
   if (setter) setter.call(el, best.value);
@@ -167,6 +201,94 @@ export function setSelectValue(el: HTMLSelectElement, value: string): boolean {
   el.dispatchEvent(new Event("input", { bubbles: true }));
   el.dispatchEvent(new Event("change", { bubbles: true }));
   return true;
+}
+
+// ---------------------------------------------------------------- avkrysningsbokser og radioknapper
+
+export interface ChoiceGroup {
+  question: string;
+  options: { el: HTMLInputElement; text: string }[];
+}
+
+function optionText(el: HTMLInputElement): string {
+  const label = labelText(el);
+  if (label) return label;
+  const aria = el.getAttribute("aria-label");
+  if (aria) return clip(aria);
+  // Tekst rett etter boksen, f.eks. <input> <span>Master</span>
+  return clip(el.nextElementSibling?.textContent ?? el.parentElement?.textContent ?? "");
+}
+
+/** Elementet som omslutter hele gruppen: det minste med alle alternativene i. */
+function groupContainer(inputs: HTMLInputElement[]): Element | null {
+  let node: Element | null = inputs[0]?.parentElement ?? null;
+  while (node && !inputs.every((i) => node!.contains(i))) node = node.parentElement;
+  return node;
+}
+
+function groupQuestion(container: Element, first: HTMLInputElement): string {
+  const legend = first.closest("fieldset")?.querySelector("legend");
+  if (legend) return clip(legend.textContent);
+  const labelled = first.closest("[role=radiogroup],[role=group]");
+  if (labelled) {
+    const t = labelled.getAttribute("aria-label") || textOfIds(labelled.getAttribute("aria-labelledby"), first.getRootNode() as Document);
+    if (t) return clip(t);
+  }
+  // Spørsmålet står som regel rett før gruppen.
+  return nearbyText(container);
+}
+
+/** Nærmeste forelder som inneholder minst to bokser, altså selve gruppen. */
+function smallestSharedAncestor(el: HTMLInputElement): Element | null {
+  let node = el.parentElement;
+  for (let depth = 0; node && depth < 8; depth++) {
+    if (node.querySelectorAll(CHOICE_SELECTOR).length > 1) return node;
+    node = node.parentElement;
+  }
+  return null;
+}
+
+/** Finn grupper av avkrysningsbokser/radioknapper med minst to alternativer. */
+export function scanChoiceGroups(doc: Document): ChoiceGroup[] {
+  const inputs = Array.from(doc.querySelectorAll<HTMLInputElement>(CHOICE_SELECTOR)).filter((el) => !el.disabled);
+
+  // 1. Samme name = samme gruppe (vanlig for radioknapper).
+  const byName = new Map<string, HTMLInputElement[]>();
+  for (const el of inputs) {
+    if (!el.name) continue;
+    const k = `${el.type}:${el.name}`;
+    byName.set(k, [...(byName.get(k) ?? []), el]);
+  }
+  const groups: HTMLInputElement[][] = [];
+  const grouped = new Set<HTMLInputElement>();
+  for (const list of byName.values()) {
+    if (list.length < 2) continue;
+    groups.push(list);
+    list.forEach((el) => grouped.add(el));
+  }
+
+  // 2. Resten (ofte avkrysningsbokser med hvert sitt name) grupperes på felles forelder.
+  const byContainer = new Map<Element, HTMLInputElement[]>();
+  for (const el of inputs) {
+    if (grouped.has(el)) continue;
+    const container = el.closest("fieldset,[role=radiogroup],[role=group]") ?? smallestSharedAncestor(el);
+    if (!container) continue;
+    byContainer.set(container, [...(byContainer.get(container) ?? []), el]);
+  }
+  for (const list of byContainer.values()) if (list.length >= 2) groups.push(list);
+
+  const out: ChoiceGroup[] = [];
+  for (const list of groups) {
+    const container = groupContainer(list);
+    if (!container) continue;
+    out.push({ question: groupQuestion(container, list[0]!), options: list.map((el) => ({ el, text: optionText(el) })) });
+  }
+  return out;
+}
+
+/** Krysser av som en bruker ville gjort, så rammeverkene får med seg endringen. */
+export function checkOption(el: HTMLInputElement) {
+  if (!el.checked) el.click();
 }
 
 export function setContentEditable(el: HTMLElement, value: string) {

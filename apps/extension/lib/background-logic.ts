@@ -78,9 +78,10 @@ async function downloadAsPayload(path: string, name: string, mime: string | null
 }
 
 async function filesFor(keys: Set<string>, profile: FullProfile): Promise<FillPayload["files"]> {
-  const want: [FileKey, "cv" | "cover_letter"][] = [
+  const want: [FileKey, "cv" | "cover_letter" | "diploma"][] = [
     ["cvFile", "cv"],
     ["coverLetterFile", "cover_letter"],
+    ["diplomaFile", "diploma"],
   ];
   const files: FillPayload["files"] = {};
   for (const [key, type] of want) {
@@ -134,6 +135,7 @@ export async function fillActiveTab(overwrite = false): Promise<{ ok: true; summ
       detected: reports.reduce((s, r) => s + r.detected, 0),
       adapter: reports.find((r) => r.adapter)?.adapter ?? null,
       fields,
+      unrecognized: [...new Set(reports.flatMap((r) => r.unrecognized ?? []))].slice(0, 20),
       at: Date.now(),
     };
     await browser.storage.local.set({ [LAST_FILL_KEY]: { ...summary, url: tab.url } });

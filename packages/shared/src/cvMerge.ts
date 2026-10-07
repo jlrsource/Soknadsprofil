@@ -61,10 +61,20 @@ export function cleanDate(v: string | null | undefined): string | null {
   return Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== v ? null : v;
 }
 
-const cleanText = (v: string | null | undefined) => {
+/** "unknown" og tomme verdier fra CV-uttrekket blir null. */
+const cleanLevel = <T extends string>(v: T | "unknown" | null | undefined): T | null => (v && v !== "unknown" ? (v as T) : null);
+
+/** Trimmer og gjør tom tekst om til null, uten å endre innholdet. Brukes for URL-er og e-post. */
+const cleanRaw = (v: string | null | undefined) => {
   const t = v?.trim();
   return t ? t : null;
 };
+
+/** Som cleanRaw, men erstatter semikolon med komma i fritekst: «A; B» blir «A, B». */
+const cleanText = (v: string | null | undefined) => cleanRaw(v?.replace(/\s*;\s*/g, ", ").replace(/,\s*$/, ""));
+
+/** Felt som skal lagres akkurat som de står. */
+const RAW_PERSONAL_FIELDS = new Set<keyof Personal>(["email", "linkedin_url", "website_url", "github_url"]);
 
 const key = (...parts: (string | null | undefined)[]) =>
   parts
@@ -107,6 +117,7 @@ function normalizeRows(x: CvExtraction): { [S in ImportSection]: ImportRows[S][]
       school: e.school.trim(),
       degree: cleanText(e.degree),
       field_of_study: cleanText(e.field_of_study),
+      location: cleanText(e.location),
       start_date: cleanDate(e.start_date),
       end_date: cleanDate(e.end_date),
       grade: cleanText(e.grade),
@@ -117,14 +128,14 @@ function normalizeRows(x: CvExtraction): { [S in ImportSection]: ImportRows[S][]
       name: c.name.trim(),
       issuer: cleanText(c.issuer),
       issued_date: cleanDate(c.issued_date),
-      url: cleanText(c.url),
+      url: cleanRaw(c.url),
       sort_order: i,
     })),
-    skills: x.skills.map((s, i) => ({ name: s.name.trim(), level: s.level, sort_order: i })),
+    skills: x.skills.map((s, i) => ({ name: s.name.trim(), level: cleanLevel(s.level), sort_order: i })),
     languages: x.languages.map((l, i) => ({
       language: l.language.trim(),
-      spoken_level: l.spoken_level,
-      written_level: l.written_level,
+      spoken_level: cleanLevel(l.spoken_level),
+      written_level: cleanLevel(l.written_level),
       sort_order: i,
     })),
   };
@@ -151,7 +162,7 @@ export function buildCvProposal(extraction: CvExtraction, profile: FullProfile):
   const personal: PersonalSuggestion[] = [];
   for (const k of Object.keys(PERSONAL_LABELS) as (keyof Personal)[]) {
     const raw = extraction.personal[k as keyof CvExtraction["personal"]];
-    const proposed = k === "birth_date" ? cleanDate(raw) : cleanText(raw);
+    const proposed = k === "birth_date" ? cleanDate(raw) : RAW_PERSONAL_FIELDS.has(k) ? cleanRaw(raw) : cleanText(raw);
     if (!proposed) continue;
     const cur = cleanText(current[k]);
     if (cur && key(cur) === key(proposed)) continue; // allerede likt

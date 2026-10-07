@@ -54,7 +54,7 @@ function describe<S extends ImportSection>(section: S, row: ImportRows[S]): { ti
 
 const READING_STEPS = ["Leser CV-en …", "Finner arbeidserfaring og utdanning …", "Plukker ut ferdigheter og språk …", "Rydder og sammenligner med profilen din …"];
 
-type Phase = { name: "reading" } | { name: "error"; message: string } | { name: "review"; proposal: CvProposal; remaining: number | null } | { name: "saving"; done: number; total: number } | { name: "done"; count: number };
+type Phase = { name: "reading" } | { name: "error"; message: string } | { name: "review"; proposal: CvProposal; remaining: number | null } | { name: "saving"; done: number; total: number } | { name: "done"; count: number; failed: { section: ImportSection; count: number }[] };
 
 export function CvImport() {
   const params = useSearchParams();
@@ -194,6 +194,18 @@ export function CvImport() {
         </motion.div>
         <h1 className="mt-5 font-display text-2xl font-semibold">{phase.count} opplysninger lagt til</h1>
         <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">Se over profilen og fyll på det som mangler. AI-en kan ha misforstått noe.</p>
+        {phase.failed.length > 0 && (
+          <div className="mx-auto mt-5 max-w-sm rounded-xl bg-destructive/10 p-3 text-left text-sm text-destructive" role="alert">
+            <div className="font-medium">Noe ble ikke lagret:</div>
+            <ul className="mt-1 list-inside list-disc">
+              {phase.failed.map((f) => (
+                <li key={f.section}>
+                  {SECTION_TITLES[f.section]}: {f.count} {f.count === 1 ? "rad" : "rader"}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         <div className="mt-7 flex flex-wrap justify-center gap-2">
           <Link href="/app/erfaring" className={buttonVariants({ variant: "outline" })}>
             Se erfaring
@@ -220,11 +232,15 @@ export function CvImport() {
       setPhase({ name: "saving", done: ++done, total });
     }
     // Én og én, så rekkefølgen (sort_order) blir den samme som i CV-en.
+    const failures = new Map<ImportSection, number>();
     for (const { section, row } of rows) {
-      await saveRow(section, row as never);
+      const saved = await saveRow(section, row as never);
+      if (!saved) failures.set(section, (failures.get(section) ?? 0) + 1);
       setPhase({ name: "saving", done: ++done, total });
     }
-    setPhase({ name: "done", count: countSelected(proposal) });
+    const failed = [...failures].map(([section, count]) => ({ section, count }));
+    const failedCount = failed.reduce((n, f) => n + f.count, 0);
+    setPhase({ name: "done", count: countSelected(proposal) - failedCount, failed });
   }
 }
 

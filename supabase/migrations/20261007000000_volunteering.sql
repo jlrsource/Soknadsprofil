@@ -1,6 +1,6 @@
--- Verv og frivillig arbeid
+-- Verv og frivillig arbeid. Trygg å kjøre flere ganger.
 
-create table public.volunteering (
+create table if not exists public.volunteering (
   id           uuid primary key default gen_random_uuid(),
   user_id      uuid not null default auth.uid() references auth.users on delete cascade,
   organization text not null,
@@ -15,14 +15,19 @@ create table public.volunteering (
   updated_at   timestamptz not null default now()
 );
 
-create index volunteering_user_id_idx on public.volunteering (user_id);
+create index if not exists volunteering_user_id_idx on public.volunteering (user_id);
+drop trigger if exists set_updated_at on public.volunteering;
 create trigger set_updated_at before update on public.volunteering
   for each row execute function public.set_updated_at();
 
 alter table public.volunteering enable row level security;
+drop policy if exists "eier kan lese" on public.volunteering;
 create policy "eier kan lese" on public.volunteering for select using (user_id = auth.uid());
+drop policy if exists "eier kan opprette" on public.volunteering;
 create policy "eier kan opprette" on public.volunteering for insert with check (user_id = auth.uid());
+drop policy if exists "eier kan endre" on public.volunteering;
 create policy "eier kan endre" on public.volunteering for update using (user_id = auth.uid()) with check (user_id = auth.uid());
+drop policy if exists "eier kan slette" on public.volunteering;
 create policy "eier kan slette" on public.volunteering for delete using (user_id = auth.uid());
 
 -- Ta med verv i hele profilen

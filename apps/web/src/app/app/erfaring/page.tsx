@@ -70,16 +70,17 @@ export default function ErfaringPage() {
           emptyText="Ingen utdanning ennå. Klikk her for å legge til."
           sortable
           title={(r) => s(r.school) ?? ""}
-          subtitle={(r) => [s(r.degree), s(r.field_of_study)].filter(Boolean).join(" · ")}
+          subtitle={(r) => [s(r.degree), s(r.field_of_study), s(r.location)].filter(Boolean).join(" · ")}
           meta={period}
           body={(r) => s(r.description)}
           fields={[
             { name: "school", label: "Skole / lærested", wide: true },
             { name: "degree", label: "Grad", placeholder: "F.eks. Bachelor" },
             { name: "field_of_study", label: "Fagfelt", placeholder: "F.eks. Informatikk" },
+            { name: "location", label: "Sted", placeholder: "F.eks. Bergen" },
+            { name: "grade", label: "Karaktersnitt", placeholder: "F.eks. B eller 4,2" },
             { name: "start_date", label: "Startet", type: "month" },
             { name: "end_date", label: "Ferdig", type: "month" },
-            { name: "grade", label: "Karaktersnitt" },
             { name: "description", label: "Beskrivelse", type: "textarea" },
           ]}
         />

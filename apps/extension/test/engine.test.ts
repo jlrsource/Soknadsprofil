@@ -154,3 +154,102 @@ describe("React-kontrollerte skjema", () => {
     root.unmount();
   });
 });
+
+describe("skjema med rader og skjulte filknapper (som i testen 7. okt)", () => {
+  const row = (title: string, id: string, extra = "") => `
+    <div class="row">
+      <div class="head"><span class="icon"></span><h3>${title}</h3></div>
+      ${extra}
+      <button type="button">Last opp<input type="file" id="${id}" style="display:none"></button>
+    </div>`;
+
+  beforeEach(() => {
+    document.body.innerHTML = `
+      <form>
+        ${row("CV *", "f-cv")}
+        ${row("Bilde", "f-bilde")}
+        ${row("Vitnemål *", "f-vitnemal", '<a href="#">Vitnemålsportalen</a>')}
+        ${row("Annen dokumentasjon", "f-annen")}
+        ${row("Video-CV", "f-video")}
+        <div class="q">
+          <p>Kva grad tek du? *</p>
+          <div class="options">
+            <label><input type="checkbox" name="g1"> Bachelor</label>
+            <label><input type="checkbox" name="g2"> Master</label>
+          </div>
+        </div>
+        <label for="studie">Kva heiter studiet ditt? *</label>
+        <textarea id="studie" placeholder="Skriv inn et svar"></textarea>
+        <div class="q">
+          <p>Noverande studietrinn? *</p>
+          <div><label><input type="checkbox" name="t1"> 1</label><label><input type="checkbox" name="t2"> 2</label></div>
+        </div>
+      </form>`;
+  });
+
+  it("gir hvert filfelt riktig type, og CV-en bare til CV-raden", () => {
+    const { matches } = classifyDocument(document, "example.com");
+    const byId = Object.fromEntries(matches.map((m) => [m.el.id, m.result.key]));
+    expect(byId["f-cv"]).toBe("cvFile");
+    expect(byId["f-vitnemal"]).toBe("diplomaFile");
+    expect(byId["f-bilde"]).toBeUndefined();
+    expect(byId["f-annen"]).toBeUndefined();
+    expect(byId["f-video"]).toBeUndefined();
+  });
+
+  it("krysser av riktig grad og fyller studiet, men lar ukjente spørsmål være", async () => {
+    const withEducation: FullProfile = {
+      ...profile,
+      educations: [{ school: "UiB", degree: "Master i informatikk", field_of_study: "Informatikk", sort_order: 0 }],
+    };
+    await fillDocument({ profile: withEducation, files: {}, overwrite: false }, document);
+    const checked = (name: string) => (document.querySelector(`[name="${name}"]`) as HTMLInputElement).checked;
+    expect(checked("g2")).toBe(true);
+    expect(checked("g1")).toBe(false);
+    expect(checked("t1") || checked("t2")).toBe(false);
+    expect((document.querySelector("#studie") as HTMLTextAreaElement).value).toBe("Informatikk");
+  });
+});
+
+describe("eneste filfelt uten tekst", () => {
+  it("får CV-en som usikker", () => {
+    document.body.innerHTML = `<input type="file" name="upload_1">`;
+    const { matches } = classifyDocument(document, "example.com");
+    expect(matches.map((m) => [m.result.key, m.result.confidence])).toEqual([["cvFile", 0.5]]);
+  });
+
+  it("får ingenting når det finnes flere filfelt", () => {
+    document.body.innerHTML = `<input type="file" name="upload_1"><input type="file" name="upload_2">`;
+    expect(classifyDocument(document, "example.com").matches).toHaveLength(0);
+  });
+});
+
+describe("spørsmål pakket i mange lag (som «Andre spørsmål»)", () => {
+  const question = (text: string, id: string) => `
+    <div class="question">
+      <div class="q-head"><div class="q-title"><span class="text">${text}</span><span class="req">*</span></div></div>
+      <div class="q-body"><div class="field"><div class="wrap"><div class="inner"><div class="box">
+        <textarea id="${id}" placeholder="Skriv inn et svar"></textarea>
+      </div></div></div></div></div>
+    </div>`;
+
+  it("finner spørsmålsteksten og fyller ut", async () => {
+    document.body.innerHTML = `
+      <section><h2>Andre spørsmål *</h2>
+        ${question("Kva stad/by er du student?", "q1")}
+        ${question("Kva heiter studiestaden din? NTNU, HVL, UiB etc", "q2")}
+        ${question("Kva heiter studiet ditt?", "q3")}
+        ${question("Kva er din snittkarakter?", "q4")}
+        ${question("Kor fekk du informasjon om campen?", "q5")}
+      </section>`;
+    const withEducation: FullProfile = {
+      ...profile,
+      educations: [{ school: "UiB", field_of_study: "Informatikk", location: "Bergen", grade: "B", sort_order: 0 }],
+    };
+    const report = await fillDocument({ profile: withEducation, files: {}, overwrite: false }, document);
+    const v = (id: string) => (document.getElementById(id) as HTMLTextAreaElement).value;
+    expect([v("q1"), v("q2"), v("q3"), v("q4")]).toEqual(["Bergen", "UiB", "Informatikk", "B"]);
+    expect(v("q5")).toBe("");
+    expect(report.unrecognized).toEqual(["Kor fekk du informasjon om campen?*"]);
+  });
+});

@@ -51,8 +51,14 @@ export function resolveValue(key: FieldKey, p: FullProfile): ResolvedValue | nul
     case "school": return text(latestEducation(p)?.school);
     case "degree": return text(latestEducation(p)?.degree);
     case "fieldOfStudy": return text(latestEducation(p)?.field_of_study);
+    case "grade": return text(latestEducation(p)?.grade);
+    case "studyCity": return text(latestEducation(p)?.location);
     case "cvFile": {
       const d = pickDocument(p, "cv");
+      return d ? { kind: "file", document: d } : null;
+    }
+    case "diplomaFile": {
+      const d = pickDocument(p, "diploma");
       return d ? { kind: "file", document: d } : null;
     }
     case "coverLetterFile": {
